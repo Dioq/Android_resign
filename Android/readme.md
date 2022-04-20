@@ -1,7 +1,7 @@
 ## 将原apk包解压成文件夹.(其实apk包就是普通的zip压缩包,也可以直接使用unzip解压缩)
-apktool d app-debug.apk -o new
+apktool d test.apk -o new
 或
-unzip app-debug.apk -d ./new    // 这种方式解压后android内部的二进制文件无法解读
+unzip test.apk -d ./new    // 这种方式解压后android内部的二进制文件无法解读
 ## 将原来分析后的apk文件压缩成.apk包
 apktool b new -o new.apk
 或
