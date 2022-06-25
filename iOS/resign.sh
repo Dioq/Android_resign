@@ -5,10 +5,10 @@ iOS     ipa包重签名
 !
 
 # 开发者证书
-certificate="Apple Development: 270488715@qq.com (2TTSFSXGUZ)"
+certificate="Apple Distribution: Zhendong Li (38D3676P2T)"
 # 发布版本
-version=8.0.15
-BundleVersion=8.0.15.35
+CFBundleShortVersionString=0
+CFBundleVersion=0
 
 # 1. 处理描述文件
 mkdir res_tmp
@@ -20,7 +20,7 @@ security cms -D -i ../*.mobileprovision > ./profile.plist
 
 # 2. 处理 ipa安装包
 # 解压ipa文件到当前目录
-unzip -q ../*.ipa -d ./
+unzip -q ../$1 -d ./
 
 # Mach-O可执行文件名
 exe_bin=""
@@ -56,15 +56,25 @@ chmod +x "$path/$exe_bin"
 # info.plist文件的BundleID要和描述文件中的BundleID保持一致
 # 获取描述文件中的BundleID
 key="application-identifier"
-BundleID=$(/usr/libexec/PlistBuddy -c "Print :'$key'" ./entitlements.plist)
-BundleID=${BundleID:11}
+CFBundleIdentifier=$(/usr/libexec/PlistBuddy -c "Print :'$key'" ./entitlements.plist)
+# echo "CFBundleIdentifier: $CFBundleIdentifier"
+CFBundleIdentifier=${CFBundleIdentifier:11}
+# echo "CFBundleIdentifier: $CFBundleIdentifier"
 # 覆盖Info.plist中的BundleID
-/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BundleID" "${path}/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CFBundleIdentifier" "${path}/Info.plist"
 # 也可以更改一些其他信息
 # 例如 发布版本
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "${path}/Info.plist"
+if [ $CFBundleShortVersionString != 0 ]
+then
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $CFBundleShortVersionString" "${path}/Info.plist"
+fi
 # 构建版本
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BundleVersion" "${path}/Info.plist"
+if [ $CFBundleVersion != 0 ]
+then
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $CFBundleVersion" "${path}/Info.plist"
+fi
+# 让iOS程序支持iTunes文件交换(可以通过ifuse获取Sandbox里的文件)
+/usr/libexec/PlistBuddy -c "Add :UIFileSharingEnabled string YES" "${path}/Info.plist"
 
 
 # 3. 签名
@@ -72,9 +82,12 @@ BundleID=${BundleID:11}
 /usr/bin/codesign --force --sign "$certificate" --entitlements entitlements.plist $path/$exe_bin
 
 # 4. 生成新成ipa
-zip -rq newapp.ipa Payload
-mv ./newapp.ipa ../
+new_app="new_$1"
+zip -rq $new_app Payload
+mv ./$new_app ../
 
 # 5. 清理现场
 cd ../
 rm -rf ./res_tmp/
+
+#ideviceinstaller -i $new_app
